@@ -1,66 +1,26 @@
-"""Financial data — 财务三表、关键比率与行业中位数."""
+"""Financial data — 财务三表、关键比率与行业中位数.
+
+注意：港股的 get_stock_mktfin_indicator 使用 curr_* 前缀字段名（与 A 股的 mktfin_* 不同）。
+"""
 
 import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Key financial statement fields of interest
-_FINA_FIELDS = [
-    "symbol",
-    "bs_asset_accruals",
-    "bs_liab_accruals",
-    "bs_equity_par_accruals",
-    "bs_curr_asset_accruals",
-    "bs_curr_liab_accruals",
-    "bs_noncurr_asset_accruals",
-    "bs_noncurr_liab_accruals",
-    "bs_inventory_accruals",
-    "bs_accounts_receivable_accruals",
-    "bs_accounts_payable_accruals",
-    "bs_other_curr_asset_accruals",
-    "bs_other_curr_liab_accruals",
-    "bs_cash_accruals",
-    "bs_ppe_accruals",
-    "bs_intang_asset_accruals",
-    "bs_shortterm_borrow_accruals",
-    "bs_longterm_borrow_accruals",
-    "bs_notes_receivable_accruals",
-    "bs_notes_payable_accruals",
-    "is_oper_rev_accruals",
-    "is_oper_cost_accruals",
-    "is_gross_profit_accruals",
-    "is_selling_dist_exp_accruals",
-    "is_admin_exp_accruals",
-    "is_oper_pl_accruals",
-    "is_net_pl_cont_op_accruals",
-    "is_net_pl_cont_op_parent_comp_accruals",
-    "is_oper_rev_less_oper_cost_accruals",
-    "is_finance_cost_accruals",
-    "is_inv_income_accruals",
-    "is_non_oper_income_accruals",
-    "is_non_oper_exp_accruals",
-    "is_income_tax_accruals",
-    "cf_oper_net_cash_flow_accruals",
-    "cf_inv_net_cash_flow_accruals",
-    "cf_fin_net_cash_flow_accruals",
-    "cf_net_cash_flow_accruals",
-    "cf_oper_net_cash_flow_per_share",
-    "cf_free_cash_flow",
-]
-
 
 def get_financials(client: Any, symbol: str) -> dict[str, Any]:
     """Fetch financial statements and market financial indicators.
 
     Returns dict with:
-      - fina_statement: latest financial statement data
-      - mktfin: market financial indicator ratios
+      - statement: latest financial statement DF (may be None if API unavailable)
+      - mktfin: market financial indicator ratios (HK naming: curr_pe_dil_excl_ttm, etc.)
       - industry_median: industry median ratios for comparison
     """
     result: dict[str, Any] = {}
 
     # --- Financial statements ---
+    # Note: HK fina_statement API doesn't support interimType parameter
     try:
         df = client.call(
             "get_fina_statement",
@@ -68,8 +28,7 @@ def get_financials(client: Any, symbol: str) -> dict[str, Any]:
             start_quarter="2023q1",
             end_quarter="2026q4",
             is_latest=True,
-            interimType="cumulative",
-            fields=_FINA_FIELDS,
+            fields=[],
         )
         if df is not None and not df.empty:
             result["statement"] = df
@@ -79,7 +38,7 @@ def get_financials(client: Any, symbol: str) -> dict[str, Any]:
         logger.warning("Failed to fetch financial statement for %s: %s", symbol, e)
         result["statement"] = None
 
-    # --- Market financial indicators ---
+    # --- Market financial indicators (HK naming: curr_* prefix) ---
     try:
         mkt_df = client.call(
             "get_stock_mktfin_indicator", symbol=[symbol], fields=[]
@@ -87,30 +46,24 @@ def get_financials(client: Any, symbol: str) -> dict[str, Any]:
         if mkt_df is not None and not mkt_df.empty:
             row = mkt_df.iloc[0]
             result["mktfin"] = {
-                "pe_ttm": row.get("mktfin_pe_ttm"),
-                "pb_lf": row.get("mktfin_pb_lf"),
-                "ps_ttm": row.get("mktfin_ps_ttm"),
-                "pcf_ttm": row.get("mktfin_pcf_ttm"),
-                "dividend_yield": row.get("mktfin_dividend_yield"),
-                "eps_ttm": row.get("mktfin_eps_ttm"),
-                "bps_lf": row.get("mktfin_bps_lf"),
-                "roe_ttm": row.get("mktfin_roe_ttm"),
-                "roa_ttm": row.get("mktfin_roa_ttm"),
-                "gross_margin": row.get("mktfin_gross_margin"),
-                "net_margin": row.get("mktfin_net_margin"),
-                "ebitda_margin": row.get("mktfin_ebitda_margin"),
-                "total_asset_turnover": row.get("mktfin_total_asset_turnover"),
-                "debt_to_equity": row.get("mktfin_debt_to_equity"),
-                "current_ratio": row.get("mktfin_current_ratio"),
-                "free_cash_flow": row.get("mktfin_free_cash_flow"),
-                "free_cash_flow_ps": row.get("mktfin_free_cash_flow_ps"),
-                "revenue_ttm": row.get("mktfin_revenue_ttm"),
-                "net_income_ttm": row.get("mktfin_net_income_ttm"),
-                "revenue_growth": row.get("mktfin_revenue_growth"),
-                "net_income_growth": row.get("mktfin_net_income_growth"),
-                "total_assets": row.get("mktfin_total_assets"),
-                "total_liabilities": row.get("mktfin_total_liabilities"),
-                "total_equity": row.get("mktfin_total_equity"),
+                # Valuation
+                "pe_ttm": row.get("curr_pe_dil_excl_ttm"),
+                "pe_basic": row.get("curr_pe_basic_excl"),
+                "pb": row.get("curr_pb"),
+                "ps": row.get("curr_price_to_rev_pershr_ttm"),
+                "pcf": row.get("curr_price_to_cf_pershr_ttm"),
+                "dividend_yield": row.get("curr_div_yld_gross_issue_ratio"),
+                # Per share
+                "eps": row.get("curr_pe_dil_excl"),
+                "bps": row.get("curr_pb"),  # PB proxy
+                "fcf_ps": row.get("curr_price_to_fcf_pershr_ttm"),
+                "sales_per_emp": row.get("curr_sales_per_emp_ttm"),
+                # EV
+                "ev": row.get("curr_ev"),
+                "ev_currency": row.get("curr_ev_currency"),
+                "ev_to_ebitda": row.get("curr_ev_to_ebitda_ttm"),
+                # Ratios that may not be in HK mktfin
+                "net_inc_per_emp": row.get("curr_net_inc_per_emp_ttm"),
             }
         else:
             result["mktfin"] = {}
@@ -133,13 +86,20 @@ def get_financials(client: Any, symbol: str) -> dict[str, Any]:
                 "imed_roe_avg_common_ttm": row.get("imed_roe_avg_common_ttm"),
                 "imed_pretax_roa_ratio_ttm": row.get("imed_pretax_roa_ratio_ttm"),
                 "imed_gross_div_yield_ttm": row.get("imed_gross_div_yield_ttm"),
-                "imed_gross_margin_ratio_fye_mid": row.get("imed_gross_margin_ratio_fye_mid"),
-                "imed_net_margin_ratio_fye_mid": row.get("imed_net_margin_ratio_fye_mid"),
-                "imed_ebitda_margin_ratio_fye_mid": row.get("imed_ebitda_margin_ratio_fye_mid"),
-                "imed_debt_to_equity_ratio_fye_mid": row.get("imed_debt_to_equity_ratio_fye_mid"),
+                "imed_gross_margin_ratio_fye_mid": row.get(
+                    "imed_gross_margin_ratio_fye_mid"
+                ),
+                "imed_net_margin_ratio_fye_mid": row.get(
+                    "imed_net_margin_ratio_fye_mid"
+                ),
+                "imed_ebitda_margin_ratio_fye_mid": row.get(
+                    "imed_ebitda_margin_ratio_fye_mid"
+                ),
+                "imed_debt_to_equity_ratio_fye_mid": row.get(
+                    "imed_debt_to_equity_ratio_fye_mid"
+                ),
                 "imed_curr_ratio_fye_mid": row.get("imed_curr_ratio_fye_mid"),
                 "imed_asset_turnover_ttm": row.get("imed_asset_turnover_ttm"),
-                "imed_revenue_growth": None,
             }
         else:
             result["industry_median"] = {}

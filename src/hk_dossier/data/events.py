@@ -16,7 +16,7 @@ def get_events(client: Any, symbol: str) -> dict[str, Any]:
     """
     result: dict[str, Any] = {}
 
-    # --- Meeting events ---
+    # --- Meeting events (HK fields: info_date, start_date, end_date, event, event_type) ---
     try:
         m_df = client.call(
             "get_stock_meeting_event",
@@ -26,7 +26,9 @@ def get_events(client: Any, symbol: str) -> dict[str, Any]:
             end_date="20271231",
         )
         if m_df is not None and not m_df.empty:
-            m_df = m_df.sort_values("meeting_date", ascending=False).reset_index(drop=True)
+            m_df = m_df.sort_values("start_date", ascending=False).reset_index(
+                drop=True
+            )
             result["meeting_events"] = m_df.to_dict("records")
         else:
             result["meeting_events"] = []
@@ -34,7 +36,7 @@ def get_events(client: Any, symbol: str) -> dict[str, Any]:
         logger.warning("Failed to fetch meeting events for %s: %s", symbol, e)
         result["meeting_events"] = []
 
-    # --- Financial events ---
+    # --- Financial events (HK fields: info_date, event, event_type, fiscal_quarter) ---
     try:
         f_df = client.call(
             "get_stock_financial_event",
@@ -44,7 +46,9 @@ def get_events(client: Any, symbol: str) -> dict[str, Any]:
             end_date="20271231",
         )
         if f_df is not None and not f_df.empty:
-            f_df = f_df.sort_values("info_date", ascending=False).reset_index(drop=True)
+            f_df = f_df.sort_values("info_date", ascending=False).reset_index(
+                drop=True
+            )
             result["financial_events"] = f_df.to_dict("records")
         else:
             result["financial_events"] = []
@@ -62,7 +66,9 @@ def get_events(client: Any, symbol: str) -> dict[str, Any]:
             end_date="20271231",
         )
         if ir_df is not None and not ir_df.empty:
-            ir_df = ir_df.sort_values("info_date", ascending=False).reset_index(drop=True)
+            ir_df = ir_df.sort_values("info_date", ascending=False).reset_index(
+                drop=True
+            )
             result["ir_events"] = ir_df.to_dict("records")
         else:
             result["ir_events"] = []

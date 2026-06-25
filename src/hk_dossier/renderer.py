@@ -138,8 +138,8 @@ def _render_market(lines: list[str], m: dict):
     # Volume
     _add(lines, "### 成交量")
     _add(lines, "")
-    _add(lines, f"- **日均成交量（10日）：** {fmt_shares(pv.get('avg_vol_10d') or summary.get('avg_volume_10d'))}")
-    _add(lines, f"- **日均成交量（90日）：** {fmt_shares(pv.get('avg_vol_90d') or summary.get('avg_volume_90d'))}")
+    _add(lines, f"- **日均成交量（10日）：** {fmt_shares(summary.get('avg_volume_10d') or pv.get('avg_vol_10d'))}")
+    _add(lines, f"- **日均成交量（90日）：** {fmt_shares(summary.get('avg_volume_90d') or pv.get('avg_vol_90d'))}")
     _add(lines, f"- **日均成交额（3月）：** {fmt_number(pv.get('avg_val_3m'))}")
     _add(lines, "")
 
@@ -163,53 +163,21 @@ def _render_financials(lines: list[str], fin: dict, market: dict):
         return f"| {label} | {co} | {iv} |"
 
     _add(lines, row("PE (TTM)", mkt.get("pe_ttm"), ind.get("imed_pe_ttm")))
-    _add(lines, row("PB", mkt.get("pb_lf"), ind.get("imed_pb_ttm")))
-    _add(lines, row("PS (TTM)", mkt.get("ps_ttm"), ind.get("imed_ps_ttm")))
-    _add(lines, row("PCF (TTM)", mkt.get("pcf_ttm"), None))
+    _add(lines, row("PB", mkt.get("pb"), ind.get("imed_pb_ttm")))
+    _add(lines, row("EV/EBITDA (TTM)", mkt.get("ev_to_ebitda"), None))
     _add(lines, row("股息率", mkt.get("dividend_yield"), ind.get("imed_gross_div_yield_ttm")))
     _add(lines, "")
 
-    # Profitability
-    _add(lines, "### 盈利能力")
-    _add(lines, "")
-    _add(lines, "| 指标 | 公司 | 行业中位数 |")
-    _add(lines, "|------|------|-----------|")
-    _add(lines, row("ROE (TTM)", mkt.get("roe_ttm"), ind.get("imed_roe_avg_common_ttm")))
-    _add(lines, row("ROA (TTM)", mkt.get("roa_ttm"), ind.get("imed_pretax_roa_ratio_ttm")))
-    _add(lines, row("毛利率", mkt.get("gross_margin"), ind.get("imed_gross_margin_ratio_fye_mid")))
-    _add(lines, row("净利润率", mkt.get("net_margin"), ind.get("imed_net_margin_ratio_fye_mid")))
-    _add(lines, row("EBITDA 利润率", mkt.get("ebitda_margin"), ind.get("imed_ebitda_margin_ratio_fye_mid")))
-    _add(lines, "")
+    # EV
+    if mkt.get("ev"):
+        _add(lines, f"- **企业价值 (EV)：** {fmt_market_cap(mkt.get('ev'), mkt.get('ev_currency', 'HKD'))}")
+        _add(lines, "")
 
-    # Per share
-    _add(lines, "### 每股数据")
+    # Per-share / employee metrics (HK mktfin limited)
+    _add(lines, "### 人均效能")
     _add(lines, "")
-    _add(lines, f"- **EPS (TTM)：** {fmt_number(mkt.get('eps_ttm'))}")
-    _add(lines, f"- **BPS：** {fmt_number(mkt.get('bps_lf'))}")
-    _add(lines, f"- **每股自由现金流：** {fmt_number(mkt.get('free_cash_flow_ps'))}")
-    _add(lines, "")
-
-    # Growth
-    _add(lines, "### 成长能力")
-    _add(lines, "")
-    _add(lines, f"- **营收 (TTM)：** {fmt_market_cap(mkt.get('revenue_ttm'))}")
-    _add(lines, f"- **净利润 (TTM)：** {fmt_market_cap(mkt.get('net_income_ttm'))}")
-    _add(lines, f"- **营收增长率：** {fmt_pct(mkt.get('revenue_growth'))}")
-    _add(lines, f"- **净利润增长率：** {fmt_pct(mkt.get('net_income_growth'))}")
-    _add(lines, "")
-
-    # Financial health
-    _add(lines, "### 财务健康")
-    _add(lines, "")
-    _add(lines, "| 指标 | 公司 | 行业中位数 |")
-    _add(lines, "|------|------|-----------|")
-    _add(lines, row("资产负债率", mkt.get("debt_to_equity"), ind.get("imed_debt_to_equity_ratio_fye_mid")))
-    _add(lines, row("流动比率", mkt.get("current_ratio"), ind.get("imed_curr_ratio_fye_mid")))
-    _add(lines, row("总资产周转率", mkt.get("total_asset_turnover"), ind.get("imed_asset_turnover_ttm")))
-    _add(lines, f"- **总资产：** {fmt_market_cap(mkt.get('total_assets'))}")
-    _add(lines, f"- **总负债：** {fmt_market_cap(mkt.get('total_liabilities'))}")
-    _add(lines, f"- **净资产：** {fmt_market_cap(mkt.get('total_equity'))}")
-    _add(lines, f"- **自由现金流：** {fmt_market_cap(mkt.get('free_cash_flow'))}")
+    _add(lines, f"- **人均销售额 (TTM)：** {fmt_number(mkt.get('sales_per_emp'))}")
+    _add(lines, f"- **人均净利润 (TTM)：** {fmt_number(mkt.get('net_inc_per_emp'))}")
     _add(lines, "")
 
     # Industry context
@@ -372,7 +340,7 @@ def _render_consensus(lines: list[str], con: dict, market: dict):
     if nc:
         _add(lines, "### 一致预期（目标价）")
         _add(lines, "")
-        _add(lines, f"- **机构覆盖数：** {fmt_number(nc.get('num_estimates', 0), 0)}")
+        _add(lines, f"- **机构覆盖数：** {int(nc.get('num_estimates', 0) or 0)}")
         _add(lines, f"- **目标均价：** {fmt_number(nc.get('mean_target_price'))} {nc.get('currency', '')}")
         _add(lines, f"- **目标中位数：** {fmt_number(nc.get('median_target_price'))} {nc.get('currency', '')}")
         _add(lines, f"- **目标最高：** {fmt_number(nc.get('high_target_price'))} {nc.get('currency', '')}")
@@ -392,16 +360,18 @@ def _render_consensus(lines: list[str], con: dict, market: dict):
         _add(lines, "### 买卖建议分布")
         _add(lines, "")
         total = rec.get("total_recommendations", 0) or 0
-        _add(lines, f"- **总建议数：** {total}")
-        _add(lines, f"- **买入：** {rec.get('buy_count', 0)}")
-        _add(lines, f"- **跑赢大盘：** {rec.get('outperform_count', 0)}")
-        _add(lines, f"- **持有：** {rec.get('hold_count', 0)}")
-        _add(lines, f"- **跑输大盘：** {rec.get('underperform_count', 0)}")
-        _add(lines, f"- **卖出：** {rec.get('sell_count', 0)}")
+        _add(lines, f"- **总建议数：** {int(total)}")
+        buy = int(rec.get("strong_buy_count", 0) or 0)
+        buy += int(rec.get("buy_count", 0) or 0)
+        _add(lines, f"- **买入（含强力买入）：** {buy}")
+        _add(lines, f"- **持有：** {int(rec.get('hold_count', 0) or 0)}")
+        sell = int(rec.get("strong_sell_count", 0) or 0)
+        sell += int(rec.get("sell_count", 0) or 0)
+        _add(lines, f"- **卖出（含强力卖出）：** {sell}")
 
         if total:
-            buy_pct = (int(rec.get("buy_count", 0) or 0) + int(rec.get("outperform_count", 0) or 0)) / total * 100
-            _add(lines, f"- **买入/跑赢占比：** {fmt_pct(buy_pct)}")
+            buy_pct = buy / total * 100
+            _add(lines, f"- **买入占比：** {fmt_pct(buy_pct)}")
         _add(lines, "")
 
     if not nc and not rec:
@@ -420,15 +390,16 @@ def _render_events(lines: list[str], ev: dict):
     if meetings:
         _add(lines, "### 公司会议")
         _add(lines, "")
-        _add(lines, "| 会议日期 | 会议类型 | 会议目的 |")
-        _add(lines, "|----------|----------|----------|")
+        _add(lines, "| 公告日期 | 会议日期 | 会议类型 | 事件 |")
+        _add(lines, "|----------|----------|----------|------|")
         for m in meetings[:5]:
             _add(
                 lines,
-                "| {} | {} | {} |".format(
-                    fmt_date(m.get("meeting_date")),
-                    m.get("meeting_type", ""),
-                    str(m.get("meeting_purpose", ""))[:60],
+                "| {} | {} | {} | {} |".format(
+                    fmt_date(m.get("info_date")),
+                    fmt_date(m.get("start_date")),
+                    m.get("event_type", ""),
+                    str(m.get("event", ""))[:60],
                 ),
             )
         _add(lines, "")
@@ -496,21 +467,12 @@ def _render_risks(lines: list[str], profile: dict, market: dict, financials: dic
         except (ValueError, TypeError):
             pass
 
-    # Profitability risk
-    if mkt.get("net_income_growth") is not None:
+    # EV/EBITDA based risk (proxy for leverage)
+    if mkt.get("ev_to_ebitda") is not None:
         try:
-            growth = float(mkt["net_income_growth"])
-            if growth < -20:
-                risks.append(f"- **盈利下滑风险：** 净利润同比增长 {fmt_pct(growth)}，盈利能力显著下降。")
-        except (ValueError, TypeError):
-            pass
-
-    # Debt risk
-    if mkt.get("debt_to_equity") is not None:
-        try:
-            dte = float(mkt["debt_to_equity"])
-            if dte > 200:
-                risks.append(f"- **高杠杆风险：** 债务/权益比 {fmt_number(dte)}，财务杠杆较高。")
+            ev_ebitda = float(mkt["ev_to_ebitda"])
+            if ev_ebitda > 30:
+                risks.append(f"- **估值偏高风险：** EV/EBITDA 为 {fmt_number(ev_ebitda)}，估值水平较高。")
         except (ValueError, TypeError):
             pass
 

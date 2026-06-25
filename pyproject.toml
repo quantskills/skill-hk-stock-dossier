@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "hk-stock-dossier"
+version = "0.1.0"
+description = "港股尽职调查研报生成工具 — 基于 Pandadata 数据接口"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["hk", "stock", "dossier", "pandadata"]
+
+dependencies = [
+    "pandas>=2.0.0",
+    "panda-data>=0.0.9",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Source = "https://github.com/YOUR_USERNAME/hk-stock-dossier"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,6 +1,9 @@
 """Analyst consensus — 一致预期与买卖建议.
 
-注意：港股接口字段名与 A 股不同（使用 mean/median/high/low 而非 mean_target_price 等）。
+注意：
+  1. 港股接口字段名与 A 股不同（使用 mean/median/high/low 而非 mean_target_price 等）。
+  2. get_stock_ncycl_consensus 返回多行（indicator 列区分指标类型），
+     必须筛选 indicator=='TP' 获取目标价，indicator=='LTGROWTH' 为长期增长率。
 """
 
 import logging
@@ -13,18 +16,27 @@ def get_consensus(client: Any, symbol: str) -> dict[str, Any]:
     """Fetch analyst consensus data.
 
     Returns:
-      - ncycl_consensus: target price consensus
+      - ncycl_consensus: target price consensus (filtered to TP indicator)
       - recommendation: analyst recommendation breakdown
     """
     result: dict[str, Any] = {}
 
-    # --- Target price consensus (HK naming: mean, median, high, low) ---
+    # --- Target price consensus (HK naming: mean, median, high, low; indicator == 'TP') ---
     try:
         nc_df = client.call(
             "get_stock_ncycl_consensus", symbol=[symbol], fields=[]
         )
         if nc_df is not None and not nc_df.empty:
-            row = nc_df.iloc[0]
+            # Filter to target price row (TP), fall back to first row if no TP found
+            tp_row = nc_df[nc_df.get("indicator") == "TP"]
+            if tp_row.empty:
+                logger.warning(
+                    "No TP indicator found for %s, using first row", symbol
+                )
+                row = nc_df.iloc[0]
+            else:
+                row = tp_row.iloc[0]
+
             result["ncycl_consensus"] = {
                 "mean_target_price": row.get("mean"),
                 "median_target_price": row.get("median"),

@@ -24,5 +24,9 @@ Thumbs.db
 # Pandadata credentials
 ~/.pandadata/
 
+# Generated reports
+*_report.md
+*_hk_*.png
+
 # Claude
 .claude/

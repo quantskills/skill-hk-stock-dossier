@@ -42,14 +42,16 @@ def fmt_market_cap(value: Any, currency: str = "HKD") -> str:
         return "—"
     try:
         v = float(value)
+        sign = "-" if v < 0 else ""
+        v = abs(v)
         if v >= 1e12:
-            return f"{v / 1e12:.2f} 万亿 {currency}"
+            return f"{sign}{v / 1e12:.2f} 万亿 {currency}"
         elif v >= 1e8:
-            return f"{v / 1e8:.2f} 亿 {currency}"
+            return f"{sign}{v / 1e8:.2f} 亿 {currency}"
         elif v >= 1e4:
-            return f"{v / 1e4:.2f} 万 {currency}"
+            return f"{sign}{v / 1e4:.2f} 万 {currency}"
         else:
-            return f"{v:.2f} {currency}"
+            return f"{sign}{v:.2f} {currency}"
     except (ValueError, TypeError):
         return str(value)
 

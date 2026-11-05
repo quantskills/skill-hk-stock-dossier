@@ -106,3 +106,6 @@ hk-stock-dossier/
 ## License
 
 MIT
+
+
+Pandadata 兼容维护：[abgyjaguo](https://github.com/abgyjaguo)，保留原项目作者署名。

@@ -13,7 +13,7 @@ keywords = ["hk", "stock", "dossier", "pandadata", "due-diligence", "hong-kong"]
 
 dependencies = [
     "pandas>=2.0.0",
-    "panda-data>=0.0.9",
+    "panda-data==1.0.6",
     "python-dotenv>=1.0.0",
     "matplotlib>=3.8.0",
 ]

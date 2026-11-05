@@ -112,3 +112,7 @@ python -m hk_dossier 0700 --output report.md --charts --pdf
 - Organization: [QUANTSKILLS](https://github.com/quantskills)
 - Maintainer: [xixihaha-dzh](https://github.com/xixihaha-dzh)
 - 项目地址: [skill-hk-stock-dossier](https://github.com/quantskills/skill-hk-stock-dossier)
+
+## Pandadata compatibility
+
+[Pandadata 1.0.6 compatibility](references/pandadata-compatibility.md) — exact SDK baseline, validation scope, and shared guidance for all supported agent runtimes.
